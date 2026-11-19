@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager Dashboard - Library System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div style="max-width: 1200px; margin: 0 auto; padding: 16px 20px;">
+        <!-- Hidden span so the inline script's getElementById("manager-id-display") won't error -->
+        <span id="manager-id-display" style="display: none;">--</span>
+
+        <!-- Compact Top Bar: Customer ID Input + Log Out -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
+            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex: 1 1 320px;">
+                <div style="flex: 1 1 200px; max-width: 280px;">
+                    <label for="target-customer-id" style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px;">Customer ID</label>
+                    <input type="text" id="target-customer-id" placeholder="e.g., CUST-010" style="padding: 7px 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                </div>
+                <button id="set-customer-btn" type="button" style="padding: 7px 14px; background-color: #0275d8; color: white; border: none; border-radius: 4px; cursor: pointer;">Set Active Customer</button>
+            </div>
+
+            <button id="back-to-login-btn" type="button" onclick="window.location.href='index.html'" style="padding: 7px 14px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Log Out</button>
+        </div>
+    </div>
+
+    <div id="library-catalog-container" style="max-width: 1200px; margin: 0 auto; padding: 0 20px 20px;">
+        <!-- Side-by-side row: Customer Details on left, Search + Borrowed Books on right -->
+        <div id="customer-borrowed-row" style="display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 24px;">
+            <section id="customer-details-section" style="flex: 0 0 300px; max-width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 6px; background: #fff; box-sizing: border-box;">
+                <h3 style="margin: 0 0 10px;">Active Customer Details</h3>
+                <p style="margin: 0 0 10px;"><strong>Customer ID:</strong> <span id="Customer_id_display">--</span></p>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <img id="customer-photo" src="images/Omkar.jpeg" alt="Customer Photo" style="width: 68px; height: 68px; object-fit: cover; border-radius: 50%; border: 1px solid #ccc; flex-shrink: 0;">
+                    <div style="font-size: 14px;">
+                        <p style="margin: 3px 0;"><strong>Name:</strong> <span id="customer-name">--</span></p>
+                        <p style="margin: 3px 0;"><strong>Email:</strong> <span id="customer-email">--</span></p>
+                        <p style="margin: 3px 0;"><strong>Contact:</strong> <span id="customer-phone">--</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="borrowed-books-section" style="flex: 1 1 500px; min-width: 280px; padding: 14px; border: 1px solid #ddd; border-radius: 6px; background: #fff; box-sizing: border-box;">
+                <input type="text" id="book-search-input" placeholder="Search by book name or author..." style="padding: 8px 10px; width: 100%; max-width: 380px; margin-bottom: 14px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <div id="borrowed-books-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px;"></div>
+            </section>
+        </div>
+
+        <!-- Search & Available Catalog Section -->
+        <section id="catalog-section">
+            
+
+            <h4>English</h4>
+            <div id="eng-books" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;"></div>
+
+            <h4>Hindi</h4>
+            <div id="hindi-books" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;"></div>
+
+            <h4>Gujarati</h4>
+            <div id="guj-books" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;"></div>
+        </section>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const managerId = urlParams.get('id');
+        const targetCustId = urlParams.get('customer_id');
+
+        if (managerId) {
+            document.getElementById("manager-id-display").textContent = managerId;
+        }
+
+        if (targetCustId) {
+            document.getElementById("target-customer-id").value = targetCustId;
+        }
+
+        const customerInputEl = document.getElementById("target-customer-id");
+        const setCustomerBtnEl = document.getElementById("set-customer-btn");
+
+        setCustomerBtnEl.addEventListener("click", () => {
+            const customerId = customerInputEl.value.trim();
+            if (!customerId) {
+                alert("Please enter a valid Customer ID.");
+                return;
+            }
+
+            window.location.href = `manager.html?id=${encodeURIComponent(managerId || 'MGR-001')}&customer_id=${encodeURIComponent(customerId)}`;
+        });
+
+        customerInputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                setCustomerBtnEl.click();
+            }
+        });
+            </script>  
+            <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> 
+            <script src="script.js"></script> 
+        </body> 
+        </html>

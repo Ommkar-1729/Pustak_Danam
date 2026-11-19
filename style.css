@@ -1,0 +1,178 @@
+/*1. Make the main container a horisontal flex row */
+.Portal-container {
+    display: block !important;
+    height: auto !important;
+}
+
+.customer_info {
+    width: 300px;
+    height: 300px;
+    max-width: 100%;
+    padding: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    overflow-y: auto;
+}
+#customer-borrowed-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+#customer-details-section {
+    flex: 0 0 340px;
+    max-width: 100%;
+    margin-bottom: 0 !important;
+}
+
+#borrowed-books-section {
+    flex: 1 1 420px;
+    min-width: 280px;
+    margin-bottom: 0 !important;
+}
+#borrowed-books-container {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+}
+
+.borrowed-card {
+    flex: 0 0 220px;
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.borrowed-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+}
+
+.borrowed-card p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #555;
+}
+
+.borrowed-card .book-price {
+    font-weight: bold;
+    color: #333;
+}
+
+/* 3.Main catalog area on the right - takes remaining width*/
+.Book-Catalog{
+    flex: 1;
+    padding: 2rem;
+    background-color: #f9f9fb;
+    overflow-y: auto;
+}
+
+/* 4. Styling for provile image */
+.profile-pic-container img{
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #3b82f6;
+    margin-bottom: 1rem;
+}
+/* 5. Typography and spacing */
+.customer_info h2
+{
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+}
+.customer_info p
+{
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+}
+.category-section
+{
+    margin-bottom: 2rem;
+}
+.category-section h2
+{
+    font-size: 1.15rem;
+    color: #1f2937;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1rem;
+}
+/* Container for each category's book grid */
+.book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+
+/* Individual book card box */
+.book-card {
+    border: 1px solid #ddd;
+    padding: 16px;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 0 !important;
+}
+/* Add a smooth transition to your existing cards */
+.book-card, .borrowed-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+mark.highlight-title {
+    background-color: #ffeb3b; /* soft yellow */
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+mark.highlight-author {
+    background-color: #ffc0cb; /* soft pink */
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Highlight effect when the cursor hovers over any card */
+.book-card:hover, .borrowed-card:hover {
+    transform: translateY(-4px); /* Lifts the card up slightly */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); /* Adds a deeper shadow */
+    border-color: #0275d8; /* Optional: highlights the border color */
+}
+
+.book-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #222;
+}
+
+.book-card p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #555;
+}
+
+.book-card .book-price {
+    font-weight: bold;
+    color: #333;
+    margin-top: 8px;
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="eng">
+    <head>
+        <meta charset ="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <title>Customer</title>
+        
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+    <div class="Portal-container" style="max-width: 1200px; margin: 0 auto; padding: 20px; box-sizing: border-box;">
+        <!-- Top Side-by-Side Row: Customer Info (Left) + Search & Borrowed Books (Right) -->
+        <div style="display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; min-width: 0; margin-bottom: 24px;">
+            <aside class="customer_info" style="flex: 0 0 280px; max-width: 100%; min-width: 0; padding: 14px; border: 1px solid #ddd; border-radius: 8px; background: #fff; box-sizing: border-box; text-align: center;">
+                <div class="profile-pic-container" style="margin-bottom: 10px;">
+                    <img id="customer-photo" src="images/Omkar.jpeg" alt="customer_photo" title="Click to change photo" style="width: 72px; height: 72px; object-fit: cover; border-radius: 50%; cursor: pointer; border: 2px solid #0275d8;">
+                    <input type="file" id="profile-pic-input" accept="image/*" style="display: none;">
+                    <button id="edit-photo-btn" type="button" style="display: block; margin: 6px auto 0; padding: 4px 12px; background: #0275d8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Edit Photo
+                    </button>
+                </div>
+
+                <h3 id="customer-name" style="margin: 4px 0; font-size: 18px;">Loading...</h3>
+                <p style="margin: 4px 0; font-size: 13px;"><strong>Customer Id:</strong> <span id="Customer_id_display">--</span></p>
+                <p style="margin: 4px 0; font-size: 13px;"><strong>Email:</strong> <span id="customer-email">--</span></p>
+                <p style="margin: 4px 0 12px; font-size: 13px;"><strong>Contact:</strong> <span id="customer-phone">--</span></p>
+
+                <button id="back-to-login-btn" type="button" style="padding: 6px 14px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                    ← Back to Login
+                </button>
+            </aside>
+
+            <main class="Book-Catalog" style="flex: 1 1 320px; min-width: 0; box-sizing: border-box; background: transparent; padding: 0;">
+                <section id="borrowed-section" style="padding: 16px; border: 1px solid #e0c4c4; border-radius: 10px; background: #fffafa;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <input type="text" id="book-search-input" placeholder="Search books (e.g. A)..." style="padding: 8px 12px; width: 100%; max-width: 340px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                    </div>
+                    <div id="borrowed-books-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;"></div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Book Collection Placed Below the Top Row (Full Width) -->
+        <section id="catalog-collection-section" style="width: 100%; padding: 16px; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-sizing: border-box;">
+            <h2 style="margin: 0 0 14px; font-size: 20px;">Book Collection</h2>
+
+            <section class="category-section">
+                <h3>English</h3>
+                <div id="eng-books" class="book-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;"></div>
+            </section>
+            <section class="category-section">
+                <h3>Hindi</h3>
+                <div id="hindi-books" class="book-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;"></div>
+            </section>
+            <section class="category-section">
+                <h3>Gujarati</h3>
+                <div id="guj-books" class="book-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;"></div>
+            </section>
+        </section>
+
+        <!-- Keep #crop-modal inside .Portal-container -->
+        <div id="crop-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; max-width: 320px; width: 100%;">
+                <h3>Crop Profile Picture</h3>
+                <div style="margin: 15px 0; overflow: hidden; display: inline-block; border: 1px solid #ccc;">
+                    <canvas id="crop-canvas" width="200" height="200" style="cursor: crosshair; display: block;"></canvas>
+                </div>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Drag to adjust position. Square crop will be saved.</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="cancel-crop" type="button" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    <button id="save-crop" type="button" style="padding: 8px 16px; background: #0275d8; color: white; border: none; border-radius: 4px; cursor: pointer;">Crop & Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="customer.js"></script>
+    </body>
+</html>
