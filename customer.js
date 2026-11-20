@@ -189,7 +189,42 @@ async function fetchAndRenderBooks(searchQuery = "") {
     }
 }
 
-function renderBooks(books, searchQuery) {
+// Track current starting index per category for pagination/sliding
+const categoryOffsets = {
+    english: 0,
+    hindi: 0,
+    gujarati: 0
+};
+
+const BOOKS_PER_VIEW = 5;
+
+function createBookCard(book, searchQuery) {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    card.style.backgroundColor = '#e8f5e9';
+    card.style.padding = '10px';
+    card.style.borderRadius = '6px';
+    card.style.minWidth = '180px';
+    card.style.flex = '1 1 180px';
+
+    const displayedTitle = highlightText(book.book_name, searchQuery, 'yellow');
+    const displayedAuthor = highlightText(book.author, searchQuery, 'pink');
+
+    card.innerHTML = `
+        <div>
+            <h4>${displayedTitle}</h4>
+            <p>Author: ${displayedAuthor}</p>
+            <p>Category: ${book.category}</p>
+            <p class="book-price">Price: ₹${book.price}</p>
+        </div>
+        <button disabled style="margin-top: 10px; width: 100%; padding: 6px; background-color: #e0e0e0; color: #666; border: none; border-radius: 4px; cursor: not-allowed;">
+            View Only
+        </button>
+    `;
+    return card;
+}
+
+function renderBooks(books, searchQuery = "") {
     const engContainer = document.getElementById('eng-books');
     const hindiContainer = document.getElementById('hindi-books');
     const gujaratiContainer = document.getElementById('guj-books');
@@ -203,40 +238,141 @@ function renderBooks(books, searchQuery) {
         return;
     }
 
+    const grouped = {
+        english: [],
+        hindi: [],
+        gujarati: []
+    };
+
     books.forEach(book => {
-        const card = document.createElement('div');
-        card.className = 'book-card';
-        card.style.backgroundColor = '#e8f5e9'; // Light green for available view
-        card.style.padding = '10px';
-        card.style.marginBottom = '10px';
-        card.style.borderRadius = '6px';
-
-        const displayedTitle = highlightText(book.book_name, searchQuery, 'yellow');
-        const displayedAuthor = highlightText(book.author, searchQuery, 'pink');
-
-        card.innerHTML = `
-            <div>
-                <h4>${displayedTitle}</h4>
-                <p>Author: ${displayedAuthor}</p>
-                <p>Category: ${book.category}</p>
-                <p class="book-price">Price: ₹${book.price}</p>
-            </div>
-            <button disabled style="margin-top: 10px; width: 100%; padding: 6px; background-color: #e0e0e0; color: #666; border: none; border-radius: 4px; cursor: not-allowed;">
-                View Only
-            </button>
-        `;
-
         const category = String(book.category).toLowerCase().trim();
-        
-        if ((category.includes('english') || category.includes('eng')) && engContainer) {
-            engContainer.appendChild(card);
-        } else if ((category.includes('hindi') || category.includes('hin')) && hindiContainer) {
-            hindiContainer.appendChild(card);
-        } else if ((category.includes('gujarati') || category.includes('guj')) && gujaratiContainer) {
-            gujaratiContainer.appendChild(card);
+        if (category.includes('english') || category.includes('eng')) {
+            grouped.english.push(book);
+        } else if (category.includes('hindi') || category.includes('hin')) {
+            grouped.hindi.push(book);
+        } else if (category.includes('gujarati') || category.includes('guj')) {
+            grouped.gujarati.push(book);
         }
     });
+
+    function renderCategoryPanel(container, categoryKey) {
+        if (!container) return;
+        const list = grouped[categoryKey];
+
+        // Remove any previous arrow toolbar right above this container
+        const existingNav = container.parentNode?.querySelector(`.carousel-nav[data-cat="${categoryKey}"]`);
+        if (existingNav) existingNav.remove();
+
+        if (!list || list.length === 0) {
+            container.innerHTML = '<p style="color: #666; font-style: italic;">No books found.</p>';
+            return;
+        }
+
+        // Clamp offset if search/realtime update shrinks the list
+        const maxStart = Math.max(0, list.length - BOOKS_PER_VIEW);
+        if (categoryOffsets[categoryKey] > maxStart) {
+            categoryOffsets[categoryKey] = maxStart;
+        }
+
+        // Build Left / Right arrow bar above the book panel
+        const navBar = document.createElement('div');
+        navBar.className = 'carousel-nav';
+        navBar.dataset.cat = categoryKey;
+        navBar.style.cssText = `
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        `;
+
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.innerHTML = '&larr;';
+        prevBtn.title = 'Previous books';
+
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.innerHTML = '&rarr;';
+        nextBtn.title = 'Next books';
+
+        const counter = document.createElement('span');
+        counter.style.cssText = 'font-size: 12px; color: #555; margin-right: 4px;';
+
+        function updatePanelView() {
+            const start = categoryOffsets[categoryKey];
+            const end = Math.min(start + BOOKS_PER_VIEW, list.length);
+            const slice = list.slice(start, end);
+
+            container.innerHTML = '';
+            container.style.display = 'flex';
+            container.style.gap = '10px';
+            container.style.flexWrap = 'wrap';
+
+            slice.forEach(book => {
+                container.appendChild(createBookCard(book, searchQuery));
+            });
+
+            counter.textContent = `${start + 1}–${end} of ${list.length}`;
+
+            const atStart = start <= 0;
+            const atEnd = end >= list.length;
+
+            prevBtn.disabled = atStart;
+            nextBtn.disabled = atEnd;
+
+            [prevBtn, nextBtn].forEach(btn => {
+                btn.style.cssText = `
+                    padding: 4px 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    background-color: ${btn.disabled ? '#f0f0f0' : '#ffffff'};
+                    color: ${btn.disabled ? '#aaa' : '#222'};
+                    cursor: ${btn.disabled ? 'not-allowed' : 'pointer'};
+                    font-size: 15px;
+                    font-weight: bold;
+                `;
+            });
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (categoryOffsets[categoryKey] > 0) {
+                categoryOffsets[categoryKey] = Math.max(0, categoryOffsets[categoryKey] - 1);
+                updatePanelView();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (categoryOffsets[categoryKey] + BOOKS_PER_VIEW < list.length) {
+                categoryOffsets[categoryKey] = Math.min(
+                    list.length - BOOKS_PER_VIEW,
+                    categoryOffsets[categoryKey] + 1
+                );
+                updatePanelView();
+            }
+        });
+
+        navBar.appendChild(counter);
+        navBar.appendChild(prevBtn);
+        navBar.appendChild(nextBtn);
+
+        container.parentNode.insertBefore(navBar, container);
+        updatePanelView();
+    }
+
+    renderCategoryPanel(engContainer, 'english');
+    renderCategoryPanel(hindiContainer, 'hindi');
+    renderCategoryPanel(gujaratiContainer, 'gujarati');
 }
+
+
+
+
+
+
+
+
+
 
 // --- Profile Picture Edit, Drag-Crop & Supabase Save ---
 (function setupProfilePhotoEditor() {
