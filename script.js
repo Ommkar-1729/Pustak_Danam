@@ -367,7 +367,7 @@ async function borrowBook(customerId, bookId) {
     }
 }
 
-// Track current starting index per category for sliding through books
+// Track current starting index per category for smooth horizontal sliding
 const categoryOffsets = {
     english: 0,
     hindi: 0,
@@ -379,8 +379,13 @@ const BOOKS_PER_VIEW = 5;
 function createBorrowBookCard(book, searchQuery) {
     const card = document.createElement('div');
     card.className = 'book-card';
-    card.style.minWidth = '180px';
-    card.style.flex = '1 1 180px';
+    card.style.cssText = `
+        padding: 10px;
+        border-radius: 6px;
+        flex: 0 0 calc((100% - 40px) / 5);
+        min-width: 180px;
+        box-sizing: border-box;
+    `;
 
     const displayedTitle = highlightText(book.book_name, searchQuery, 'yellow');
     const displayedAuthor = highlightText(book.author, searchQuery, 'pink');
@@ -410,9 +415,9 @@ function renderBooks(books, searchQuery = typeof getSearchQuery === 'function' ?
     const hindiContainer = document.getElementById('hindi-books');
     const gujaratiContainer = document.getElementById('guj-books');
 
-    if (engContainer) engContainer.innerHTML = '';
-    if (hindiContainer) hindiContainer.innerHTML = '';
-    if (gujaratiContainer) gujaratiContainer.innerHTML = '';
+    [engContainer, hindiContainer, gujaratiContainer].forEach(c => {
+        if (c) c.innerHTML = '';
+    });
 
     if (!books || books.length === 0) {
         if (engContainer) {
@@ -446,17 +451,43 @@ function renderBooks(books, searchQuery = typeof getSearchQuery === 'function' ?
         const existingNav = container.parentNode?.querySelector(`.carousel-nav[data-cat="${categoryKey}"]`);
         if (existingNav) existingNav.remove();
 
+        // Unwrap previous viewport cleanly before re-rendering
+        if (container.parentElement?.classList.contains('carousel-viewport')) {
+            const viewport = container.parentElement;
+            viewport.parentNode.insertBefore(container, viewport);
+            viewport.remove();
+        }
+
         if (!list || list.length === 0) {
             container.innerHTML = '<p style="color: #666; font-style: italic;">No available books.</p>';
             return;
         }
 
-        // Keep offset within valid bounds if list shrinks
         const maxStart = Math.max(0, list.length - BOOKS_PER_VIEW);
         if (categoryOffsets[categoryKey] > maxStart) {
             categoryOffsets[categoryKey] = maxStart;
         }
 
+        // Clipping viewport + sliding flex track
+        const viewport = document.createElement('div');
+        viewport.className = 'carousel-viewport';
+        viewport.style.cssText = 'overflow: hidden; width: 100%;';
+
+        container.parentNode.insertBefore(viewport, container);
+        viewport.appendChild(container);
+
+        container.style.cssText = `
+            display: flex;
+            gap: 10px;
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+        `;
+
+        list.forEach(book => {
+            container.appendChild(createBorrowBookCard(book, searchQuery));
+        });
+
+        // Arrow toolbar above the book panel
         const navBar = document.createElement('div');
         navBar.className = 'carousel-nav';
         navBar.dataset.cat = categoryKey;
@@ -468,6 +499,9 @@ function renderBooks(books, searchQuery = typeof getSearchQuery === 'function' ?
             margin-bottom: 8px;
         `;
 
+        const counter = document.createElement('span');
+        counter.style.cssText = 'font-size: 12px; color: #555; margin-right: 4px;';
+
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
         prevBtn.innerHTML = '&larr;';
@@ -478,68 +512,54 @@ function renderBooks(books, searchQuery = typeof getSearchQuery === 'function' ?
         nextBtn.innerHTML = '&rarr;';
         nextBtn.title = 'Next books';
 
-        const counter = document.createElement('span');
-        counter.style.cssText = 'font-size: 12px; color: #555; margin-right: 4px;';
+        function styleArrow(btn) {
+            btn.style.cssText = `
+                padding: 4px 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: ${btn.disabled ? '#f0f0f0' : '#ffffff'};
+                color: ${btn.disabled ? '#aaa' : '#222'};
+                cursor: ${btn.disabled ? 'not-allowed' : 'pointer'};
+                font-size: 15px;
+                font-weight: bold;
+            `;
+        }
 
-        function updatePanelView() {
+        function updateSlidePosition() {
             const start = categoryOffsets[categoryKey];
             const end = Math.min(start + BOOKS_PER_VIEW, list.length);
-            const slice = list.slice(start, end);
 
-            container.innerHTML = '';
-            container.style.display = 'flex';
-            container.style.gap = '10px';
-            container.style.flexWrap = 'wrap';
-
-            slice.forEach(book => {
-                container.appendChild(createBorrowBookCard(book, searchQuery));
-            });
+            const firstCard = container.children[0];
+            const stepPx = firstCard ? firstCard.getBoundingClientRect().width + 10 : 0;
+            container.style.transform = `translateX(-${start * stepPx}px)`;
 
             counter.textContent = `${start + 1}–${end} of ${list.length}`;
-
-            const atStart = start <= 0;
-            const atEnd = end >= list.length;
-
-            prevBtn.disabled = atStart;
-            nextBtn.disabled = atEnd;
-
-            [prevBtn, nextBtn].forEach(btn => {
-                btn.style.cssText = `
-                    padding: 4px 10px;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                    background-color: ${btn.disabled ? '#f0f0f0' : '#ffffff'};
-                    color: ${btn.disabled ? '#aaa' : '#222'};
-                    cursor: ${btn.disabled ? 'not-allowed' : 'pointer'};
-                    font-size: 15px;
-                    font-weight: bold;
-                `;
-            });
+            prevBtn.disabled = start <= 0;
+            nextBtn.disabled = end >= list.length;
+            styleArrow(prevBtn);
+            styleArrow(nextBtn);
         }
 
         prevBtn.addEventListener('click', () => {
             if (categoryOffsets[categoryKey] > 0) {
-                categoryOffsets[categoryKey] = Math.max(0, categoryOffsets[categoryKey] - 1);
-                updatePanelView();
+                categoryOffsets[categoryKey] -= 1;
+                updateSlidePosition();
             }
         });
 
         nextBtn.addEventListener('click', () => {
-            if (categoryOffsets[categoryKey] + BOOKS_PER_VIEW < list.length) {
-                categoryOffsets[categoryKey] = Math.min(
-                    list.length - BOOKS_PER_VIEW,
-                    categoryOffsets[categoryKey] + 1
-                );
-                updatePanelView();
+            if (categoryOffsets[categoryKey] < maxStart) {
+                categoryOffsets[categoryKey] += 1;
+                updateSlidePosition();
             }
         });
 
         navBar.appendChild(counter);
         navBar.appendChild(prevBtn);
         navBar.appendChild(nextBtn);
+        viewport.parentNode.insertBefore(navBar, viewport);
 
-        container.parentNode.insertBefore(navBar, container);
-        updatePanelView();
+        requestAnimationFrame(updateSlidePosition);
     }
 
     renderCategoryPanel(engContainer, 'english');
