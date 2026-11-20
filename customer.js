@@ -42,9 +42,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (searchInput) searchInput.value = "";
 
-    await fetchCustomerDetails(currentCustomerId);
-    await fetchAndRenderBorrowedBooks(currentCustomerId);
-    await fetchAndRenderBooks();
+   await fetchCustomerDetails(currentCustomerId);
+await fetchAndRenderBorrowedBooks(currentCustomerId);
+await fetchAndRenderBooks(searchInput ? searchInput.value.trim() : "");
 
     supabaseClient
         .channel('library-realtime-sync')
@@ -91,10 +91,10 @@ async function fetchCustomerDetails(customerId) {
 
 async function fetchAndRenderBorrowedBooks(customerId) {
     try {
-        const { data: transactions, error: txError } = await supabaseClient
+        // Fetch ALL borrowed transactions across the store so we know every unavailable book
+        const { data: allBorrowedTx, error: txError } = await supabaseClient
             .from('transaction')
-            .select('book_id, status, borrow_date')
-            .eq('customer_id', customerId)
+            .select('book_id, customer_id, status, borrow_date')
             .eq('status', 'borrowed');
 
         if (txError) throw txError;
@@ -105,41 +105,51 @@ async function fetchAndRenderBorrowedBooks(customerId) {
 
         borrowedBookIds.clear();
 
-        if (!transactions || transactions.length === 0) {
+        // Exclude every book currently borrowed by ANY user from the store list
+        (allBorrowedTx || []).forEach(t => {
+            if (t.book_id) {
+                borrowedBookIds.add(String(t.book_id).trim());
+            }
+        });
+
+        // Filter only the current customer's borrowed books to display in their top panel
+        const userTransactions = (allBorrowedTx || []).filter(
+            t => String(t.customer_id).trim() === String(customerId).trim()
+        );
+
+        if (userTransactions.length === 0) {
             container.innerHTML = '<p style="color: #666; font-style: italic;">No books currently borrowed.</p>';
-            await fetchAndRenderBooks();
             return;
         }
 
         const borrowDateMap = {};
-        transactions.forEach(t => {
+        const userBookIds = [];
+        userTransactions.forEach(t => {
             if (t.book_id) {
                 const bId = String(t.book_id).trim();
-                borrowedBookIds.add(bId);
+                userBookIds.push(bId);
                 borrowDateMap[bId] = t.borrow_date;
             }
         });
 
-        const bookIds = Array.from(borrowedBookIds);
-
         const { data: books, error: bookError } = await supabaseClient
             .from('book')
             .select('*')
-            .in('book_id', bookIds);
+            .in('book_id', userBookIds);
 
         if (bookError) throw bookError;
 
         books.forEach(book => {
             const card = document.createElement('div');
             card.className = 'borrowed-card';
-            card.style.backgroundColor = '#ffebee'; // Light red for borrowed view
+            card.style.backgroundColor = '#ffebee';
             card.style.padding = '10px';
             card.style.marginBottom = '10px';
             card.style.borderRadius = '6px';
-            
+
             const bookIdStr = String(book.book_id).trim();
             const borrowDate = borrowDateMap[bookIdStr] || "N/A";
-            
+
             let dueDateDisplay = "N/A";
             if (borrowDate !== "N/A") {
                 const borrowDateObj = new Date(borrowDate);
@@ -164,8 +174,6 @@ async function fetchAndRenderBorrowedBooks(customerId) {
             container.appendChild(card);
         });
 
-        await fetchAndRenderBooks();
-
     } catch (error) {
         console.error("Error fetching borrowed books:", error.message);
     }
@@ -173,16 +181,36 @@ async function fetchAndRenderBorrowedBooks(customerId) {
 
 async function fetchAndRenderBooks(searchQuery = "") {
     try {
+        // 1. Get all book_ids currently marked 'borrowed' in transaction
+        const { data: borrowedTx, error: txError } = await supabaseClient
+            .from('transaction')
+            .select('book_id')
+            .eq('status', 'borrowed');
+
+        if (txError) throw txError;
+
+        const currentlyBorrowedIds = new Set(
+            (borrowedTx || [])
+                .map(t => t.book_id && String(t.book_id).trim())
+                .filter(Boolean)
+        );
+
+        // 2. Fetch books matching search query
         let query = supabaseClient.from('book').select('*');
 
         if (searchQuery) {
             query = query.or(`book_name.ilike.%${searchQuery}%,author.ilike.%${searchQuery}%`);
         }
-        
+
         const { data: books, error: bookError } = await query;
         if (bookError) throw bookError;
 
-        renderBooks(books, searchQuery);
+        // 3. Exclude any book whose book_id has status === 'borrowed'
+        const availableBooks = (books || []).filter(
+            book => !currentlyBorrowedIds.has(String(book.book_id).trim())
+        );
+
+        renderBooks(availableBooks, searchQuery);
 
     } catch (error) {
         console.error("Error fetching library books:", error.message);
@@ -254,7 +282,7 @@ function renderBooks(books, searchQuery = "") {
     });
 
     function renderCategoryPanel(container, categoryKey) {
-       if (!container) return;
+        if (!container) return;
         const list = grouped[categoryKey];
 
         // Clean up previous nav & viewport if re-rendering
@@ -368,6 +396,8 @@ function renderBooks(books, searchQuery = "") {
             }
         });
 
+        window.addEventListener('resize', updateSlidePosition);
+
         navBar.appendChild(counter);
         navBar.appendChild(prevBtn);
         navBar.appendChild(nextBtn);
@@ -380,7 +410,6 @@ function renderBooks(books, searchQuery = "") {
     renderCategoryPanel(hindiContainer, 'hindi');
     renderCategoryPanel(gujaratiContainer, 'gujarati');
 }
-
 
 
 
